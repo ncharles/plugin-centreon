@@ -1,0 +1,72 @@
+<!--
+Copyright 2011-2014 Normation SAS
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, Version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+
+
+<TECHNIQUE name="Centreon agent installation">
+  <DESCRIPTION>This technique installs the Centreon agent, plus all necessary plugins, and makes sure that nrpe is running
+  </DESCRIPTION>
+  
+  <MULTIINSTANCE>false</MULTIINSTANCE>
+  <COMPATIBLE>
+    <OS version=">= 6">RHEL / CentOS</OS>
+  </COMPATIBLE>
+
+  <BUNDLES>
+    <NAME>centreon_installation</NAME>
+  </BUNDLES>
+
+  <TMLS>
+    <TML name="centreonInstallation"/>
+    <TML name="centreon-nrpe">
+      <OUTPATH>centreonClient/1.0/centreon-nrpe</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="centreon_plugin_repo">
+      <OUTPATH>centreonClient/1.0/centreon_plugin.repo</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML>
+    <TML name="RPM-GPG-KEY-CES">
+      <OUTPATH>centreonClient/1.0/RPM-GPG-KEY-CES</OUTPATH>
+      <INCLUDED>false</INCLUDED>
+    </TML> 
+
+  </TMLS>
+
+  
+  <SECTIONS>
+    <SECTION name="Centreon installation" component="true">
+    <SECTION name="Centreon configuration" component="true">
+      <INPUT>
+        <NAME>CENTREON_LISTEN_PORT</NAME>
+        <DESCRIPTION>Port Centreon will use to pool this system</DESCRIPTION>
+        <CONSTRAINT>
+          <DEFAULT>5666</DEFAULT>
+          <TYPE>integer</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+      <INPUT>
+        <NAME>CENTREON_ALLOWED_HOST</NAME>
+        <DESCRIPTION>IP or hostname that are allowed to talk to the NRPE deamon</DESCRIPTION>
+        <CONSTRAINT>
+          <TYPE>string</TYPE>
+        </CONSTRAINT>
+      </INPUT>
+
+    </SECTION>
+
+  </SECTIONS>
+
+</TECHNIQUE>       

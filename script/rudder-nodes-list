@@ -1,0 +1,187 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+#
+# Name:         rudder-nodes.py 
+# Synopsis:     Get node details from Rudder api and export them to a spreadsheet
+# Requirements: requests and xlwt Python modules
+# Author:       Dennis Cabooter <Dennis.Cabooter@snow.nl>
+#
+
+# Imports - builtins
+import os.path
+import json
+import subprocess
+import csv
+
+# Imports - external
+import requests
+#import xlwt
+
+# Configuration - BEGIN
+api_url        = "https://localhost/rudder/api"
+api_token      = "HRLeYGfBX9TZQnF0aq6Ab7U2M7HbRJO8"
+validate_https = False
+# Configuration - END
+
+snmp_groupid     = "e73f91de-2182-437c-8560-adf5ec517fb1"
+centreon_groupid = "9bfc73a7-ef57-4205-a958-5da7b0179d27"
+# Global variables
+api_version  = 4
+snmp_url     = "%s/%s/groups/%s" % (api_url, api_version, snmp_groupid)
+centreon_url = "%s/%s/groups/%s" % (api_url, api_version, centreon_groupid)
+
+node_url    = "%s/%s/nodes" % (api_url, api_version)
+headers     = {"X-API-Token": api_token}
+
+
+# SNMP NODES
+
+# Call API
+snmp_r = requests.get(snmp_url, headers=headers, verify=validate_https)
+
+# Parse JSON
+snmp_j = json.loads(snmp_r.content)
+
+# Define nodes
+snmp_nodesid = snmp_j["data"]["groups"][0]["nodeIds"]
+
+snmp_nodes = {}
+ 
+for nodeid in snmp_nodesid:
+
+  snmp_node_r = requests.get(node_url + "/" + nodeid , headers=headers, verify=validate_https)
+  snmp_node_j = json.loads(snmp_node_r.content)
+
+  snmp_nodes[snmp_node_j["data"]["nodes"][0]["ipAddresses"][2]] = snmp_node_j["data"]["nodes"][0]["hostname"]
+
+# CENTREON NODES
+
+# Call API
+centreon_r = requests.get(centreon_url, headers=headers, verify=validate_https)
+
+# Parse JSON
+centreon_j = json.loads(centreon_r.content)
+
+# Define nodes
+centreon_nodesid = centreon_j["data"]["groups"][0]["nodeIds"]
+
+centreon_nodes = {}
+
+for nodeid in centreon_nodesid:
+
+  centreon_node_r = requests.get(node_url + "/" + nodeid , headers=headers, verify=validate_https)
+  centreon_node_j = json.loads(centreon_node_r.content)
+
+  centreon_nodes[centreon_node_j["data"]["nodes"][0]["ipAddresses"][2]] = centreon_node_j["data"]["nodes"][0]["hostname"]
+
+
+
+all_nodes = dict(centreon_nodes.items() + snmp_nodes.items())
+
+print("********** SNMP")
+print(snmp_nodes)
+print("********** CENTREON")
+print(centreon_nodes)
+print("********** ALL")
+print(all_nodes)
+
+# List all nodes on Centreon
+centreon_node_csv = os.popen("centreon -u admin -p admin -o HOST -a show")
+reader = csv.reader(centreon_node_csv, delimiter=';')
+
+registered_nodes = {}
+for entry in reader:
+  registered_nodes[entry[3]] = entry[2]
+
+
+# Missing snmp nodes
+missing_snmp_nodes = set(snmp_nodes.keys()) - set(registered_nodes.keys())
+missing_centreon_nodes = set(centreon_nodes.keys()) - set(registered_nodes.keys())
+
+
+print "missing snmp nodes"
+print missing_snmp_nodes
+
+update_conf = 0
+
+for add_snmp in missing_snmp_nodes:
+  cmd = "centreon -u admin -p admin -o HOST -a ADD -v \"" + snmp_nodes[add_snmp] + ";" + snmp_nodes[add_snmp] + ";" + add_snmp + ";OS-Linux-SNMP;Central;\""
+  result_snmp = os.popen(cmd)
+  update_tpl = "centreon -u admin -p admin -o HOST -a applytpl -v \""+ snmp_nodes[add_snmp] +"\""
+  result_tpl = os.popen(update_tpl)
+
+  update_conf = 1
+
+  print result_snmp
+
+
+for add_centreon in missing_centreon_nodes:
+  cmd = "centreon -u admin -p admin -o HOST -a ADD -v \"" + centreon_nodes[add_centreon] + ";" + centreon_nodes[add_centreon] + ";" + add_centreon + ";OS-Linux-NRPE;Central;\""
+  result_centreon = os.popen(cmd)
+  update_tpl = "centreon -u admin -p admin -o HOST -a applytpl -v \""+ centreon_nodes[add_centreon] +"\""
+  result_tpl = os.popen(update_tpl)
+
+  print update_tpl
+  print result_tpl
+
+  update_conf = 1
+
+  print result_centreon
+
+
+generate = "centreon -u admin -p admin -a APPLYCFG -v 1"
+reload = "centreon -u admin -p admin -a POLLERRESTART -v 1"
+
+if update_conf == 1:
+  print "Regererating conf"
+  apply = os.popen(generate)
+  for add_centreon in missing_centreon_nodes:
+    update_tpl = "centreon -u admin -p admin -o HOST -a applytpl -v \""+ centreon_nodes[add_centreon] +"\""
+    result_tpl = os.popen(update_tpl)
+
+  for add_snmp in missing_snmp_nodes:
+    update_tpl = "centreon -u admin -p admin -o HOST -a applytpl -v \""+ snmp_nodes[add_snmp] +"\""
+    result_tpl = os.popen(update_tpl)
+
+  apply = os.popen(generate)
+  reload = os.popen(reload)
+
+
+# Add Worksheet object to Workbook
+#sheet = wbk.add_sheet("Rudder nodes")
+
+# Set style to bold
+#style = xlwt.easyxf("font: bold on")
+
+# Write headers
+#headers = ["Node", "Machine type", "Operating system", "Node ID"]
+
+#for index, header in enumerate(headers):
+  # Indexing is zero based, row then column
+#  sheet.write(0, index, header, style)
+
+# Row counter
+row = 1
+
+# Loop nodes
+#for node in sorted(nodes):
+  # Vars
+#  host_name = node["hostname"]
+#  mach_type = node["machineType"]
+#  oper_sys  = node["osName"] + " " + node["osVersion"]
+#  node_id   = node["id"]
+
+  # Indexing is zero based, row then column
+#  print(host_name)
+#  print(mach_type)
+#  print(oper_sys)
+#  print(node_id)
+
+  # Increase row counter
+#  row += 1
+
+# Save Workbook
+#wbk.save(workbook)
+
+# Execute libreoffice
+#subprocess.call(["libreoffice", "--minimized", workbook])
