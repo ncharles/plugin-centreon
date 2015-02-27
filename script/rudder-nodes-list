@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 #
 # Name:         rudder-nodes.py 
-# Synopsis:     Get node details from Rudder api and export them to a spreadsheet
+# Synopsis:     Get node details from Rudder api and export them to Centreon
 # Requirements: requests and xlwt Python modules
-# Author:       Dennis Cabooter <Dennis.Cabooter@snow.nl>
+# Author:       Nicolas Charles <nicolas.charles@normation.com>
+# Based on rudder-node-list by Dennis Cabooter <Dennis.Cabooter@snow.nl>
 #
 
 # Imports - builtins
@@ -147,41 +148,4 @@ if update_conf == 1:
   reload = os.popen(reload)
 
 
-# Add Worksheet object to Workbook
-#sheet = wbk.add_sheet("Rudder nodes")
 
-# Set style to bold
-#style = xlwt.easyxf("font: bold on")
-
-# Write headers
-#headers = ["Node", "Machine type", "Operating system", "Node ID"]
-
-#for index, header in enumerate(headers):
-  # Indexing is zero based, row then column
-#  sheet.write(0, index, header, style)
-
-# Row counter
-row = 1
-
-# Loop nodes
-#for node in sorted(nodes):
-  # Vars
-#  host_name = node["hostname"]
-#  mach_type = node["machineType"]
-#  oper_sys  = node["osName"] + " " + node["osVersion"]
-#  node_id   = node["id"]
-
-  # Indexing is zero based, row then column
-#  print(host_name)
-#  print(mach_type)
-#  print(oper_sys)
-#  print(node_id)
-
-  # Increase row counter
-#  row += 1
-
-# Save Workbook
-#wbk.save(workbook)
-
-# Execute libreoffice
-#subprocess.call(["libreoffice", "--minimized", workbook])
